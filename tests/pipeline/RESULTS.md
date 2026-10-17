@@ -3,7 +3,7 @@
 ## Automated (Claude Code, 2026-10-17)
 | Check | Result | Evidence |
 |---|---|---|
-| Quality gates (`node scripts/check-pipeline.mjs`) | PASS | "Pipeline check PASSED" |
+| Quality gates (`node .agent/scripts/check-pipeline.mjs`) | PASS | "Pipeline check PASSED" |
 | Linter and installer self-tests (`node --test scripts/pipeline.test.mjs`) | PASS | 8/8, including negative fixtures |
 | samples/api build (warnings as errors) | PASS | 0 warnings, 0 errors |
 | samples/api tests | PASS | 5/5 |

@@ -14,7 +14,7 @@ Every new skill or update goes through a PR:
    comment under the frontmatter.
 5. Add `paths` (the file scope) or `disable-model-invocation: true` (opt-in only) so the skill
    doesn't load into unrelated work.
-6. Add a row below and run `node scripts/check-pipeline.mjs`.
+6. Add a row below and run `node .agent/scripts/check-pipeline.mjs`.
 
 ## Vendored
 

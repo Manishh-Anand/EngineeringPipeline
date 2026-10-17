@@ -15,7 +15,7 @@ const SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PATHS = [
   'AGENTS.md', 'CLAUDE.md', '.cursor/rules', '.cursor/skills', '.cursor/mcp.json', '.mcp.json',
   '.claude/agents', '.agent/templates', '.agent/work/.gitkeep',
-  'docs/EXTERNAL_SKILLS.md', 'docs/licenses', 'scripts/check-pipeline.mjs',
+  'docs/EXTERNAL_SKILLS.md', 'docs/licenses', '.agent/scripts/check-pipeline.mjs',
 ];
 // Project-owned after install: copied only if missing, never tracked or updated.
 const SCAFFOLD = ['.agent/memory'];
@@ -101,5 +101,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     if (!update) console.log('\nAlready installed? Re-run with --update to replace files you have not edited.');
     process.exit(2);
   }
-  console.log('\nNext: open a PR with these changes. Run: node scripts/check-pipeline.mjs');
+  console.log('\nNext: open a PR with these changes. Run: node .agent/scripts/check-pipeline.mjs');
 }

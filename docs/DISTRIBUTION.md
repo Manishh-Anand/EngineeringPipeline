@@ -33,7 +33,7 @@ node C:\tools\engineering-pipeline\scripts\install.mjs .
 - **Fill in project memory**: add 3–10 conventions to `.agent/memory/conventions.md` that aren't
   obvious from the code, and known traps to `gotchas.md`. This is the main per-project setup
   work.
-- **Run** `node scripts/check-pipeline.mjs`, add it to the project's CI (§5), and open the PR.
+- **Run** `node .agent/scripts/check-pipeline.mjs`, add it to the project's CI (§5), and open the PR.
 
 Roll out to one pilot repo and 2–3 developers for a week first, then to the rest.
 
@@ -85,13 +85,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: node scripts/check-pipeline.mjs
+      - run: node .agent/scripts/check-pipeline.mjs
 ```
 Azure Pipelines:
 ```yaml
 - task: NodeTool@0
   inputs: { versionSpec: '22.x' }
-- script: node scripts/check-pipeline.mjs
+- script: node .agent/scripts/check-pipeline.mjs
   displayName: Pipeline check
 ```
 In the template repo itself, also run `node --test scripts/pipeline.test.mjs`.

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { check } from './check-pipeline.mjs';
+import { check } from '../.agent/scripts/check-pipeline.mjs';
 import { install } from './install.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');

@@ -85,7 +85,7 @@ To add a stack, add one glob-scoped rule. The workflow doesn't change.
 | Artifact skeletons | Templates | `.agent/templates/` |
 | Team memory | Index plus one-fact files and ADRs, in Git | `.agent/memory/` |
 | Grounding and runtime checks | MCP: Context7 (docs), Playwright (UI) | `.cursor/mcp.json`, `.mcp.json` |
-| Quality gates | Linter plus self-tests | `scripts/check-pipeline.mjs`, `scripts/pipeline.test.mjs` |
+| Quality gates | Linter plus self-tests | `.agent/scripts/check-pipeline.mjs`, `scripts/pipeline.test.mjs` |
 | Distribution | Installer that never overwrites | `scripts/install.mjs` |
 
 ## 8. Intent routing
@@ -230,7 +230,7 @@ Every item below is done, or named in the final report with the reason it isn't:
 
 ## 21. Acceptance tests
 Tooling (automated, passing):
-- `node scripts/check-pipeline.mjs`
+- `node .agent/scripts/check-pipeline.mjs`
 - `node --test scripts/pipeline.test.mjs` (8 tests, including negative fixtures and the
   installer's no-overwrite behaviour)
 

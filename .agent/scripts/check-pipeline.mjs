@@ -1,17 +1,25 @@
 #!/usr/bin/env node
-// Quality gates for the Engineering Agent Pipeline (PRD §53). Usage: node scripts/check-pipeline.mjs [repoRoot]
+// Quality gates for the Engineering Agent Pipeline. Usage: node .agent/scripts/check-pipeline.mjs [repoRoot]
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const INTERNAL_SKILLS = ['requirements-intake', 'codebase-audit', 'architecture-review', 'validation', 'code-review', 'documentation', 'project-memory'];
-export const RULES = ['engineering-core', 'security', 'csharp-dotnet', 'aspnet-core', 'ef-core', 'sql-server', 'react', 'typescript', 'javascript', 'vite', 'python', 'testing', 'documentation', 'ponytail'];
+export const INTERNAL_SKILLS = [
+  'requirements-intake', 'codebase-audit', 'architecture-review', 'tasks',
+  'validation', 'code-review', 'convergence', 'documentation', 'project-memory',
+];
+export const RULES = [
+  'engineering-core', 'security', 'csharp-dotnet', 'aspnet-core', 'ef-core',
+  'sql-server', 'react', 'typescript', 'javascript', 'vite', 'python',
+  'testing', 'documentation', 'ponytail',
+];
 const ALWAYS_ON = new Set(['engineering-core', 'security', 'ponytail']);
 const SKILL_SECTIONS = ['Purpose', 'Trigger', 'Inputs', 'Process', 'Output', 'Guardrails', 'Stop conditions'];
 const CAPS = { agents: 150, rule: 80, core: 60, internalSkill: 150, vendoredSkill: 350, memoryIndex: 100 };
 const REQUIRED_FILES = [
-  'AGENTS.md', 'CLAUDE.md', ...['validator', 'code-reviewer', 'security-auditor'].map((a) => `.claude/agents/${a}.md`), '.agent/memory/INDEX.md', 'docs/EXTERNAL_SKILLS.md',
-  ...['INTAKE', 'REQUIREMENTS', 'CODEBASE_CONTEXT', 'PLAN', 'VALIDATION', 'REVIEW', 'FEATURE_DOC', 'ADR'].map((t) => `.agent/templates/${t}.md`),
+  'AGENTS.md', 'CLAUDE.md', ...['validator', 'code-reviewer', 'security-auditor'].map((a) => `.claude/agents/${a}.md`),
+  '.agent/memory/INDEX.md', 'docs/EXTERNAL_SKILLS.md', '.agent/scripts/check-pipeline.mjs',
+  ...['INTAKE', 'REQUIREMENTS', 'CODEBASE_CONTEXT', 'PLAN', 'TASKS', 'VALIDATION', 'REVIEW', 'CONVERGENCE', 'FEATURE_DOC', 'ADR'].map((t) => `.agent/templates/${t}.md`),
 ];
 
 const lines = (s) => s.replace(/\r\n/g, '\n').split('\n');
@@ -113,7 +121,7 @@ export function check(root) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const root = path.resolve(process.argv[2] ?? path.join(path.dirname(fileURLToPath(import.meta.url)), '..'));
+  const root = path.resolve(process.argv[2] ?? path.join(path.dirname(fileURLToPath(import.meta.url)), '../..'));
   const errors = check(root);
   if (errors.length) {
     console.error(`Pipeline check FAILED (${errors.length}):\n` + errors.map((e) => `  - ${e}`).join('\n'));

@@ -125,7 +125,7 @@ cursor C:\Temp\pipeline-test
   | Reviewers don't run | Say `run the review gate`, or invoke `/code-reviewer`, `/security-auditor` |
   | Screenshot ignored | The model isn't vision-capable, or paste failed. Use `@file` |
 
-- After any pipeline edit: `node scripts/check-pipeline.mjs && node --test scripts/pipeline.test.mjs`.
+- After any pipeline edit: `node .agent/scripts/check-pipeline.mjs && node --test scripts/pipeline.test.mjs`.
 
 ## Roll out to a real project
 ```powershell
