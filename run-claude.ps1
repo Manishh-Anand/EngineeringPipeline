@@ -1,16 +1,59 @@
-$ErrorActionPreference = "Stop"
-
 $claude = "C:\Users\manis\.local\bin\claude.exe"
 $repo = "C:\EngineeringPipeline"
-$log = "C:\EngineeringPipeline\claude-overnight.log"
+$log = "C:\Users\manis\claude-overnight.log"
 
+# Go to repository
 Set-Location $repo
 
-"==================================================" | Out-File $log -Append
-"Claude run started: $(Get-Date)" | Out-File $log -Append
+# Simple logging function
+function Write-Log {
+    param([string]$Message)
+    $Message | Tee-Object -FilePath $log -Append
+}
 
-# Make sure we are on the correct branch
-git switch sdd-pipeline 2>&1 | Tee-Object -FilePath $log -Append
+Write-Log "=================================================="
+Write-Log "Claude run started: $(Get-Date)"
+
+# --------------------------------------------------
+# 1. Make sure we're on sdd-pipeline
+# --------------------------------------------------
+
+$currentBranch = (git branch --show-current).Trim()
+
+Write-Log "Current branch: $currentBranch"
+
+if ($currentBranch -ne "sdd-pipeline") {
+    Write-Log "Switching to sdd-pipeline..."
+    
+    git switch sdd-pipeline
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "ERROR: Could not switch to sdd-pipeline."
+        exit 1
+    }
+}
+
+Write-Log "Confirmed branch: $((git branch --show-current).Trim())"
+
+# --------------------------------------------------
+# 2. Make sure working tree is clean
+# --------------------------------------------------
+
+$existingChanges = git status --porcelain
+
+if ($existingChanges) {
+    Write-Log "ERROR: Repository contains uncommitted changes."
+    Write-Log "Claude will NOT be started."
+    Write-Log "Existing changes:"
+    Write-Log $existingChanges
+    exit 1
+}
+
+Write-Log "Working tree is clean."
+
+# --------------------------------------------------
+# 3. Claude prompt
+# --------------------------------------------------
 
 # Your prompt
 $prompt = @"
@@ -454,38 +497,80 @@ When everything is complete, provide a concise summary of:
 4. Any remaining issues
 "@
 
-"Starting Claude Code..." | Out-File $log -Append
+# --------------------------------------------------
+# 4. Run Claude Code
+# --------------------------------------------------
 
-& $claude -p $prompt 2>&1 | Tee-Object -FilePath $log -Append
+Write-Log "Starting Claude Code..."
 
-$exitCode = $LASTEXITCODE
-
-"Claude exit code: $exitCode" | Out-File $log -Append
-
-if ($exitCode -ne 0) {
-    "Claude failed. Git push will NOT be attempted." | Out-File $log -Append
-    exit $exitCode
+& $claude -p $prompt 2>&1 | ForEach-Object {
+    $_ | Tee-Object -FilePath $log -Append
 }
 
-"Claude completed successfully." | Out-File $log -Append
+$claudeExitCode = $LASTEXITCODE
 
-# Check whether Claude actually changed anything
+Write-Log "Claude exit code: $claudeExitCode"
+
+# --------------------------------------------------
+# 5. Don't push if Claude failed
+# --------------------------------------------------
+
+if ($claudeExitCode -ne 0) {
+    Write-Log "Claude failed or could not run."
+    Write-Log "Git push will NOT be attempted."
+    exit $claudeExitCode
+}
+
+# --------------------------------------------------
+# 6. Check resulting changes
+# --------------------------------------------------
+
 $status = git status --porcelain
 
-if ($status) {
-
-    "Changes detected. Committing..." | Out-File $log -Append
-
-    git add -A
-
-    git commit -m "Implement overnight SDD pipeline changes"
-
-    git push origin sdd-pipeline
-
-    "Changes committed and pushed successfully." | Out-File $log -Append
-}
-else {
-    "No Git changes detected. Nothing to commit." | Out-File $log -Append
+if (-not $status) {
+    Write-Log "Claude completed but no Git changes were detected."
+    Write-Log "Nothing to commit."
+    exit 0
 }
 
-"Claude run finished: $(Get-Date)" | Out-File $log -Append
+Write-Log "Changes detected:"
+Write-Log $status
+
+# --------------------------------------------------
+# 7. Commit
+# --------------------------------------------------
+
+Write-Log "Adding changes..."
+
+git add -A
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Log "ERROR: git add failed."
+    exit 1
+}
+
+Write-Log "Creating commit..."
+
+git commit -m "Implement overnight SDD pipeline changes"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Log "ERROR: git commit failed."
+    exit 1
+}
+
+# --------------------------------------------------
+# 8. Push
+# --------------------------------------------------
+
+Write-Log "Pushing to origin/sdd-pipeline..."
+
+git push origin sdd-pipeline
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Log "ERROR: git push failed."
+    exit 1
+}
+
+Write-Log "SUCCESS: Changes committed and pushed to sdd-pipeline."
+Write-Log "Claude run finished: $(Get-Date)"
+Write-Log "=================================================="
