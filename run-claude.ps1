@@ -1,32 +1,42 @@
+$ErrorActionPreference = "Stop"
+
 $claude = "C:\Users\manis\.local\bin\claude.exe"
 $repo = "C:\EngineeringPipeline"
 $log = "C:\Users\manis\claude-overnight.log"
 
-# Go to repository
-Set-Location $repo
+# ==================================================
+# Helper
+# ==================================================
 
-# Simple logging function
 function Write-Log {
     param([string]$Message)
+
     $Message | Tee-Object -FilePath $log -Append
 }
 
-Write-Log "=================================================="
-Write-Log "Claude run started: $(Get-Date)"
+# ==================================================
+# Start
+# ==================================================
 
-# --------------------------------------------------
-# 1. Make sure we're on sdd-pipeline
-# --------------------------------------------------
+Set-Location $repo
+
+Write-Log "=================================================="
+Write-Log "Claude overnight run started: $(Get-Date)"
+
+# ==================================================
+# 1. Verify Git branch
+# ==================================================
 
 $currentBranch = (git branch --show-current).Trim()
 
 Write-Log "Current branch: $currentBranch"
 
 if ($currentBranch -ne "sdd-pipeline") {
+
     Write-Log "Switching to sdd-pipeline..."
-    
+
     git switch sdd-pipeline
-    
+
     if ($LASTEXITCODE -ne 0) {
         Write-Log "ERROR: Could not switch to sdd-pipeline."
         exit 1
@@ -35,113 +45,76 @@ if ($currentBranch -ne "sdd-pipeline") {
 
 Write-Log "Confirmed branch: $((git branch --show-current).Trim())"
 
-# --------------------------------------------------
-# 2. Make sure working tree is clean
-# --------------------------------------------------
+# ==================================================
+# 2. Verify clean working tree
+# ==================================================
 
 $existingChanges = git status --porcelain
 
 if ($existingChanges) {
+
     Write-Log "ERROR: Repository contains uncommitted changes."
     Write-Log "Claude will NOT be started."
+
     Write-Log "Existing changes:"
     Write-Log $existingChanges
+
     exit 1
 }
 
 Write-Log "Working tree is clean."
 
-# --------------------------------------------------
+# ==================================================
 # 3. Claude prompt
-# --------------------------------------------------
+# ==================================================
 
-# Your prompt
 $prompt = @"
-Review the current Engineering Pipeline implementation and make the requested changes.
 
-so i have implemented it under sdd-pipeline brnch so can u verify if its correctly implemented and also run simple 3 tests to test this and write the output into an md fileand here is the description :
-The one change I'd consider is scripts/. Many projects already have their own scripts/ folder, and the installer drops check-pipeline.mjs into it. It doesn't overwrite anything, but it mixes pipeline files with project files. Moving it to .agent/scripts/check-pipeline.mjs would keep every pipeline file under .cursor/, .claude/, .agent/ plus the two root files.
+# Upgrade the Existing Agentic Coding Pipeline
 
-I wouldn't move it into .cursor/, since that folder is Cursor's own config space. If you want the .agent/scripts/ move, I can make it on both branches: that means updating the installer, the docs, the CI snippet, and the update logic so existing installs move over cleanly.
-
-
-❯ do it. and after tht pls implement like a spec driven development and here is the description and after implementing i need u to write an md file to test for me u do not run any tests, the most important part is it should work with cursor thts the most imp for now:
-  Since Claude Code has already implemented the first PRD, you don't need to give it another 5,000-word PRD. That risks making it spend too much context re-processing instructions instead of actually inspecting and improving the repository.
-  I'd give Claude a focused upgrade brief. It should tell Claude:
-  1. You already have an implementation.
-
-┌───────────────────────────────┬────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────┐
-│             File              │    Where it must be    │                                                        Why                                                        │
-├───────────────────────────────┼────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ AGENTS.md                     │ Repo root              │ Cursor reads AGENTS.md from the project root automatically. Inside .cursor/ it would be ignored. (Cursor also     │
-│                               │                        │ picks up AGENTS.md files in subfolders, scoped to that folder.)                                                   │
-├───────────────────────────────┼────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ CLAUDE.md                     │ Repo root              │ Claude Code re imports AGENTS.md.                                                    │
-───────────────────┼────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ .cursor/mcp.json              │ Inside .cursor/        │ This is Cursor's MCP config location.                                                                             │
-│                               │ (already there)        │                                                                                                                   │
-├───────────────────────────────┼────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ .mcp.json                     │ Repo root              │ This is Claude Code's MCP file; Cursor doesn't read it. It has the same two servers, so both tools get them. If   │
-│                               │                        │ your team only uses Cursor, you can delete it.                                                                    │
-├───────────────────────────────┼────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ .cursor/rules/,               │ Inside .cursor/        │ Cursor's native locations.                                                                                        │
-│ .cursor/skills/               │ (already there)        │                                                                                                                   │
-├───────────────────────────────┼────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ .claude/agents/               │ Root .claude/ (already │ Cursor and Claude Code both read subagents from here, so one copy serves both.                                    │
-│                               │  there)                │                                                                                                                   │
-├───────────────────────────────┼────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ scripts/check-pipeline.mjs    │ Anywhere               │ No tool loads it automatically. You run it yourself, or CI does.                                                  │
-└───────────────────────────────┴────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-The one change I'd consider is scripts/. Many projects already have their own scripts/ folder, and the installer drops check-pipeline.mjs into it. It doesn't overwrite anything, but it mixes pipeline files with project files. Moving it to .agent/scripts/check-pipeline.mjs would keep every pipeline file under .cursor/, .claude/, .agent/ plus the two root files.
-
-I wouldn't move it into .cursor/, since that folder is Cursor's own config space. If you want the .agent/scripts/ move, I can make it on both branches: that means updating the installer, the docs, the CI snippet, and the update logic so existing installs move over cleanly.
-
-✻ Worked for 11s · done 11:03 PM
-
-❯ do it. and after tht pls implement like a spec driven development and here is the description and after implementing i need u to write an md file to test for me u do not run any tests, the most important part is it should work with cursor thts the most imp for now:
- Since Claude Code has already implemented the first PRD, you don't need to give it another 5,000-word PRD. That risks making it spend too much context re-processing instructions instead of actually inspecting and improving the repository.
-I'd give Claude a focused upgrade brief. It should tell Claude:
-1. You already have an implementation.
-2. Inspect it first.
-3. Keep the original 6-questionnaire structure exactly as the foundation.
-4. Add the SDD concepts around it.
-5. Don't blindly copy Spec Kit.
-6. Make its own engineering judgment.
-7. Implement and test the improvements.
-The six initial questions should remain:
-1. Title
-2. Take Screenshot
-3. Give Features/SubFeatures
-4. Actors
-5. Give Rules
-6. Give Data Elements
-7. Architecture Structure (Folder Structure)
-
-Small correction: that's actually 7 items, even though you referred to them as the "6 initial questionnaire." I'd preserve all seven exactly as they are currently implemented, rather than risk changing the existing UX. yes it is 7
-Here's the shorter prompt I'd use:
-Upgrade the Existing Agentic Coding Pipeline
 You have already implemented the Agentic Coding Pipeline based on the previous PRD in this repository.
-Do not rebuild it from scratch.
+
+Do NOT rebuild it from scratch.
+
 Your task is to inspect the existing implementation, understand it, and upgrade it where appropriate.
-The goal is to evolve it into a lightweight Spec-Driven Development (SDD) workflow for Cursor, while preserving the existing design and keeping the system small, maintainable and context-efficient.
-1. First Inspect the Existing Implementation
+
+The goal is to evolve it into a lightweight Spec-Driven Development (SDD) workflow for Cursor, while preserving the existing design and keeping the system small, maintainable, context-efficient, and practical.
+
+---
+
+## 1. Inspect the Existing Implementation First
+
 Before changing anything:
-- inspect .cursor/;
-- inspect all existing skills;
-- inspect all existing rules;
-- inspect the current workflow;
-- understand how the questionnaire works;
-- understand how Cursor native modes are being used;
-- identify what is already working well;
-- identify duplication, unnecessary complexity and missing capabilities.
-Do not immediately rewrite anything.
-Make an engineering assessment first and then decide what should actually be changed.
-2. Preserve the Existing Questionnaire
-This is important.
-The existing initial questionnaire is already implemented and should remain the foundation of the workflow.
-Do not remove, replace or unnecessarily redesign it.
-Preserve all of its existing questions:
+
+- Inspect the repository structure.
+- Inspect .cursor/.
+- Inspect all existing skills.
+- Inspect all existing rules.
+- Inspect the current workflow.
+- Understand how the questionnaire works.
+- Understand how Cursor native modes are being used.
+- Inspect the existing installer/update mechanism.
+- Identify what is already working well.
+- Identify duplication.
+- Identify unnecessary complexity.
+- Identify missing capabilities.
+
+Do NOT immediately rewrite anything.
+
+Make an engineering assessment first and then decide what should actually change.
+
+---
+
+## 2. Preserve the Existing Questionnaire
+
+This is a hard requirement.
+
+The existing initial questionnaire is already implemented and must remain the foundation of the workflow.
+
+Do NOT remove, replace, or unnecessarily redesign it.
+
+Preserve all seven existing questionnaire items:
+
 1. Title
 2. Take Screenshot
 3. Give Features/SubFeatures
@@ -150,30 +123,45 @@ Preserve all of its existing questions:
 6. Give Data Elements
 7. Architecture Structure (Folder Structure)
 
-If the current implementation has slightly different wording or UX, preserve the existing implementation rather than replacing it just to match this list.
-You may improve the questionnaire's intelligence, such as:
-- inferring answers from the repository;
-- asking only missing questions;
-- presenting choices as 1, 2, 3, Other;
-- allowing the agent to determine when a question is unnecessary.
-But the existing questionnaire should remain recognizable and usable.
-3. Introduce Spec-Driven Development
-Use Spec-Driven Development as the conceptual improvement.
-A useful reference is GitHub Spec Kit, which follows a workflow broadly based around:
-Specify
-   ↓
-Clarify
-   ↓
-Plan
-   ↓
-Tasks
-   ↓
-Implement
-   ↓
-Converge
+The existing questionnaire should remain recognizable and usable.
 
-Do not copy Spec Kit blindly or turn this project into Spec Kit.
-Instead, adopt the useful ideas:
+You may improve its intelligence where appropriate, for example:
+
+- infer answers from the repository;
+- ask only genuinely missing questions;
+- present choices as 1, 2, 3, Other;
+- allow the agent to determine when a question is unnecessary.
+
+Do not break the existing questionnaire UX merely to introduce SDD.
+
+---
+
+## 3. Introduce Spec-Driven Development
+
+Evolve the existing workflow toward a lightweight SDD process.
+
+Use the following conceptual flow:
+
+Specify
+↓
+Clarify
+↓
+Plan
+↓
+Tasks
+↓
+Implement
+↓
+Validate
+↓
+Converge
+↓
+Document
+
+Do NOT copy GitHub Spec Kit blindly.
+
+Adopt only useful principles:
+
 - specification before implementation;
 - clarification;
 - architecture-aware planning;
@@ -181,41 +169,61 @@ Instead, adopt the useful ideas:
 - consistency checking;
 - validation;
 - convergence against the original specification.
-4. Evolve Our Existing Pipeline
-The desired workflow should become approximately:
+
+The objective is a lightweight engineering workflow, not a Spec Kit clone.
+
+---
+
+## 4. Evolve the Existing Pipeline
+
+The desired workflow should approximately become:
+
 Existing Questionnaire
-        ↓
+↓
 Infer Missing Information
-        ↓
+↓
 Clarify Only When Necessary
-        ↓
+↓
 Codebase / Architecture Audit
-        ↓
+↓
 Plan
-        ↓
+↓
 Implementation Tasks
-        ↓
+↓
 Consistency Check
-        ↓
+↓
 Human Approval
-        ↓
+↓
 Implementation
-        ↓
+↓
 Validation
-        ↓
+↓
 Convergence
-        ↓
+↓
 Documentation
 
-Do not force every request through every stage.
+Do NOT force every request through every stage.
+
 A simple request should remain simple.
+
 A large feature should receive the complete workflow.
+
 A bug should use an appropriate debugging workflow.
+
 An investigation should remain read-only.
-5. Use Cursor's Native Modes
-This is a hard requirement.
-Do not recreate functionality that Cursor already provides.
+
+Use engineering judgment to determine the appropriate workflow.
+
+---
+
+## 5. Cursor Native Modes Are Critical
+
+Cursor compatibility is the most important requirement.
+
+Do NOT recreate functionality that Cursor already provides natively.
+
 Use Cursor's native capabilities appropriately:
+
 Ask
 → repository investigation / read-only analysis
 
@@ -231,10 +239,27 @@ Debug
 Multitask
 → genuinely independent parallel work
 
-The custom skills and rules should provide the engineering methodology and standards, while Cursor provides the actual execution modes.
-6. Add a Tasks Stage
+The custom skills and rules should provide the engineering methodology and standards.
+
+Cursor should provide the actual execution modes.
+
+Do not create unnecessary custom abstractions that duplicate Cursor functionality.
+
+---
+
+## 6. Add a Tasks Stage
+
 After the implementation plan, introduce a concise task breakdown.
+
+Tasks should be:
+
+- actionable;
+- dependency-aware;
+- related to the plan;
+- related to the requirements.
+
 Example:
+
 T001 — Update database model
 T002 — Add API endpoint
 T003 — Add API tests
@@ -243,65 +268,91 @@ T005 — Implement UI
 T006 — Add UI tests
 T007 — Run validation
 
-Tasks should be:
-- actionable;
-- dependency-aware;
-- related to the plan;
-- related to the requirements.
 Do not create meaningless micro-tasks.
-7. Add Consistency Checking
+
+---
+
+## 7. Add Lightweight Consistency Checking
+
 Before implementation, compare:
+
 Questionnaire / Specification
-        ↕
+↕
 Plan
-        ↕
+↕
 Tasks
-        ↕
+↕
 Existing Architecture
 
 Detect:
+
 - missing requirements;
 - contradictory requirements;
 - missing tasks;
 - architecture violations;
 - unnecessary changes;
-- missing tests;
+- missing validation considerations;
 - missing database considerations.
+
 Keep this lightweight.
-8. Keep Human Approval
+
+---
+
+## 8. Keep Human Approval
+
 Before significant implementation, the agent should present a short plan and ask:
+
 1. Approve and build
 2. Modify the plan
 3. Show more details
 4. Cancel
 
-Do not start major implementation before approval.
-9. Add Convergence
-After implementation, don't only check whether the code compiles.
-Check whether:
+Do not start major implementation before approval when operating interactively in Cursor.
+
+Do not create a fake approval mechanism that duplicates Cursor's native interaction model.
+
+---
+
+## 9. Add Convergence
+
+After implementation, the workflow should not only check whether code compiles.
+
+It should compare:
+
 Original requirements
-        ↓
+↓
 Actual implementation
 
-match.
 Look for:
+
 - missing features;
 - incomplete requirements;
 - architecture drift;
 - unimplemented tasks;
 - missing validation;
 - unintended changes.
-If something is missing, fix it or report it.
-10. Keep Skills and Rules Small
-This is a major requirement.
-Do not create a huge SKILL.md containing the entire engineering process.
+
+If something is missing, fix it or clearly report it.
+
+---
+
+## 10. Keep Skills and Rules Small
+
+Do NOT create one huge SKILL.md containing the entire engineering process.
+
 Keep skills:
+
 - focused;
 - modular;
 - composable;
 - concise.
-Similarly, keep technology-specific rules separate.
-For example:
+
+Technology-specific rules should remain separate.
+
+Use the existing repository structure where appropriate.
+
+For example, technology-specific rules may include:
+
 .cursor/
 ├── rules/
 │   ├── engineering-core.mdc
@@ -327,10 +378,16 @@ For example:
     ├── convergence/
     └── documentation/
 
-Only load rules relevant to the current task.
-Avoid unnecessary context consumption.
-11. Preserve Technology Coverage
-The existing system should continue supporting:
+Do NOT create these files blindly.
+
+Reuse existing files whenever they already provide the required capability.
+
+---
+
+## 11. Preserve Technology Coverage
+
+The system should continue supporting:
+
 - C#
 - ASP.NET Core
 - Entity Framework Core
@@ -341,37 +398,63 @@ The existing system should continue supporting:
 - JSX / TSX
 - Vite
 - Python
+
 Keep coding standards modular and technology-aware.
-12. External Skills
+
+---
+
+## 12. External Skills
+
 Review the external skills already included in the implementation.
+
 You may evaluate useful skills from sources such as:
-- Vercel Agent Skills;
-- frontend/design skills;
-- testing skills;
-- security skills;
-- Ponytail;
-- Caveman;
-- other mature engineering skills.
-But do not add skills simply because they exist.
-For each skill, determine:
-Does it provide unique value?
-Does it duplicate an existing skill?
-Does it increase context unnecessarily?
-Does it conflict with our standards?
-Is it relevant to our stack?
+
+- Vercel Agent Skills
+- frontend/design skills
+- testing skills
+- security skills
+- Ponytail
+- Caveman
+- other mature engineering skills
+
+Do NOT add skills simply because they exist.
+
+For every candidate skill determine:
+
+- Does it provide unique value?
+- Does it duplicate an existing skill?
+- Does it increase context unnecessarily?
+- Does it conflict with our standards?
+- Is it relevant to our stack?
 
 Only retain/add skills that genuinely improve the system.
-13. Context Efficiency
+
+---
+
+## 13. Context Efficiency
+
 The entire system should follow:
+
 Progressive context loading rather than maximum context loading.
 
-For example, a React task should not load SQL Server, Python and ASP.NET rules unless they are relevant.
-For a large feature, decompose it into smaller feature units rather than forcing the entire feature into one context.
-14. Team Consistency
+For example:
+
+A React task should not unnecessarily load SQL Server, Python and ASP.NET rules.
+
+A large feature should be decomposed into smaller feature units rather than forcing the entire feature into one context.
+
+Context efficiency is a first-class engineering requirement.
+
+---
+
+## 14. Team Consistency
+
 The ultimate goal is:
+
 Two developers giving the agent the same type of request should receive a consistent engineering process and quality bar.
 
-The implementation should standardize:
+Standardize:
+
 Requirements
 Planning
 Architecture review
@@ -381,125 +464,207 @@ Validation
 Documentation
 
 without forcing every project to have identical architecture.
+
 Project architecture always takes precedence over generic assumptions.
-15. Important Engineering Principle
-Do not blindly follow this document.
-Use your engineering judgment.
+
+---
+
+## 15. Engineering Judgment
+
+This is extremely important.
+
+Do NOT blindly follow this document.
+
 If the existing implementation already solves something correctly:
-keep it.
+
+KEEP IT.
+
 If something here would make the system more complex without meaningful benefit:
-don't implement it.
+
+DO NOT IMPLEMENT IT.
+
 If two mechanisms overlap:
-simplify them.
-If a Cursor native capability already solves a problem:
-use Cursor rather than rebuilding it.
-The goal is not to create more files or more agents.
-The goal is to create a small, robust, maintainable and consistent engineering workflow.
-16. Implementation Process
-Follow this sequence:
-1. Inspect existing implementation
-2. Assess current architecture
-3. Identify gaps against this upgrade brief
-4. Decide what should change
-5. Implement the improvements
-6. Test the workflow
-7. Review for unnecessary complexity
-8. Refine
-26. Acceptance Criteria
+
+SIMPLIFY THEM.
+
+If Cursor native functionality already solves a problem:
+
+USE CURSOR rather than rebuilding it.
+
+The goal is not to create more files, skills, agents, or prompts.
+
+The goal is to create a small, robust, maintainable, context-efficient and consistent engineering workflow.
+
+---
+
+## 16. Existing scripts directory change
+
+The pipeline currently uses scripts/check-pipeline.mjs.
+
+Move the pipeline-specific script to:
+
+.agent/scripts/check-pipeline.mjs
+
+Do NOT use .cursor/ for this because .cursor/ is Cursor's configuration space.
+
+Ensure the change is handled comprehensively across:
+
+- installer
+- documentation
+- CI snippet
+- update logic
+- existing-install migration
+
+Existing project scripts must not be unnecessarily overwritten or mixed with pipeline-specific files.
+
+---
+
+## 17. Validation Requirement
+
+IMPORTANT:
+
+Do NOT run the project's actual test suites during this unattended run.
+
+Instead, after implementing the changes, create a Markdown validation document:
+
+OVERNIGHT_VALIDATION.md
+
+The document must contain exactly three representative validation scenarios covering the most important parts of the upgraded pipeline.
+
+For each scenario include:
+
+1. Scenario name
+2. Purpose
+3. Starting condition
+4. User/request input
+5. Expected workflow
+6. Expected Cursor mode
+7. Expected output
+8. What should be verified manually
+
+The three scenarios should collectively validate:
+
+1. A normal feature request using the SDD workflow.
+2. A bug/debugging request using Cursor's native Debug capability.
+3. A repository investigation/read-only request using Cursor's native Ask capability.
+
+Do not execute these tests.
+
+The Markdown file is a validation/test plan for later manual verification in Cursor.
+
+---
+
+## 18. Final Review
+
+Before finishing:
+
+- inspect all changes;
+- review the Git diff;
+- remove unnecessary files;
+- remove duplicate skills/rules;
+- check Cursor compatibility;
+- check installer/update consistency;
+- check documentation consistency;
+- verify the seven-question questionnaire remains intact;
+- verify the SDD workflow is actually represented in the implementation;
+- verify .agent/scripts/check-pipeline.mjs is handled correctly;
+- verify OVERNIGHT_VALIDATION.md exists and contains the three scenarios.
+
+Do not make unrelated changes.
+
+---
+
+## Acceptance Criteria
+
 The upgrade is complete only if:
-Architecture
-- [ ] Existing implementation has been inspected before modification.
-- [ ] No unnecessary replacement of working components.
-- [ ] Cursor remains the execution platform.
-SDD
-- [ ] Specification stage exists.
-- [ ] Clarification stage exists.
-- [ ] Planning exists.
-- [ ] Tasks exist.
-- [ ] Implementation exists.
-- [ ] Convergence exists.
-Cursor
-- [ ] Ask is used for read-only investigation.
-- [ ] Plan is used for meaningful planning.
-- [ ] Agent performs implementation.
-- [ ] Debug handles appropriate bugs.
-- [ ] Native Cursor functionality is not unnecessarily recreated.
-Context
-- [ ] Skills remain small.
-- [ ] Rules remain small.
-- [ ] Technology-specific rules are modular.
-- [ ] Relevant context is loaded selectively.
-- [ ] Large features can be decomposed.
-Quality
-- [ ] Requirements are checked.
-- [ ] Architecture is checked.
-- [ ] Tests are checked.
-- [ ] Build is checked.
-- [ ] Security is considered.
-- [ ] Implementation is compared against specification.
-Team
-- [ ] Repository-native distribution remains supported.
-- [ ] Existing standards are preserved.
-- [ ] External skills are evaluated rather than blindly copied.
-27. Most Important Instruction
-Use your engineering judgment.
-Do not treat this document as a command to blindly add files.
-You are modifying an already-working system.
-Your job is to determine the best architecture for the upgraded pipeline based on:
-1. the current repository;
-2. the existing implementation;
-3. Cursor's native capabilities;
-4. Spec-Driven Development principles;
-5. context efficiency;
-6. maintainability;
-7. team-wide consistency.
-If two approaches are possible, choose the simpler one that provides the same or better outcome.
-If an existing component already solves a requirement, reuse it.
-If a proposed requirement conflicts with the existing architecture, identify the conflict and choose the safest maintainable approach.
-If something from this document would make the system worse, do not implement it blindly. Explain the trade-off and choose the better engineering solution.
-First inspect → then assess → then propose the upgrade → then implement it.
-Do not stop after the assessment. Once you have made your engineering judgment, implement the complete upgrade and test it against representative feature, bug, investigation, React/TypeScript, C#/ASP.NET Core, SQL Server, and Python scenarios.
+
+### Architecture
+
+- Existing implementation was inspected before modification.
+- Working components were not unnecessarily replaced.
+- Cursor remains the execution platform.
+
+### SDD
+
+- Specification exists.
+- Clarification exists.
+- Planning exists.
+- Tasks exist.
+- Implementation exists.
+- Validation exists.
+- Convergence exists.
+- Documentation exists.
+
+### Questionnaire
+
+All seven existing questionnaire items remain supported:
+
+1. Title
+2. Take Screenshot
+3. Give Features/SubFeatures
+4. Actors
+5. Give Rules
+6. Give Data Elements
+7. Architecture Structure (Folder Structure)
+
+### Cursor
+
+- Ask is used for read-only investigation.
+- Plan is used for meaningful planning.
+- Agent performs implementation.
+- Debug handles appropriate bugs.
+- Multitask is used only for genuinely independent work.
+- Native Cursor functionality is not unnecessarily recreated.
+
+### Context
+
+- Skills remain small.
+- Rules remain small.
+- Technology-specific rules are modular.
+- Relevant context is loaded selectively.
+- Large features can be decomposed.
+
+### Quality
+
+- Requirements are checked.
+- Architecture is checked.
+- Validation is defined.
+- Build considerations are checked where appropriate.
+- Security is considered.
+- Implementation is compared against specification.
+
+### Team Consistency
+
+- Repository-native distribution remains supported.
+- Existing standards are preserved.
+- External skills are evaluated rather than blindly copied.
+
+---
+
+## Final Principle
+
+First inspect → assess → make an engineering judgment → implement → review → refine.
+
+Do not stop after the assessment.
+
 The final result should feel like a mature internal AI engineering system, not a collection of prompt files.
 
+Most importantly, optimize for:
 
+1. Cursor compatibility
+2. Simplicity
+3. Context efficiency
+4. Maintainability
+5. Consistency
+6. Correctness
 
-Verify that the workflow:
-asks intelligently
-→ infers where possible
-→ preserves the questionnaire
-→ inspects the codebase
-→ plans
-→ creates tasks
-→ gets approval
-→ implements
-→ validates
-→ converges
-→ documents
+Do not add complexity merely to make the architecture appear more sophisticated.
 
-The final implementation should feel like a mature internal AI engineering system, not a collection of prompt files.
-
-
-
-Important:
-- First inspect the existing implementation and understand the current state.
-- Read the relevant project documentation before making changes.
-- Preserve existing functionality unless the requested changes require modifying it.
-- Do not make unrelated changes.
-- Implement the changes completely rather than only describing what should be changed.
-- Run the relevant build/tests after implementation.
-- Fix any errors caused by your changes.
-- Review the final diff before finishing.
-
-When everything is complete, provide a concise summary of:
-1. What you changed
-2. Files modified
-3. Tests/build performed
-4. Any remaining issues
 "@
 
-# --------------------------------------------------
+# ==================================================
 # 4. Run Claude Code
-# --------------------------------------------------
+# ==================================================
 
 Write-Log "Starting Claude Code..."
 
@@ -511,9 +676,9 @@ $claudeExitCode = $LASTEXITCODE
 
 Write-Log "Claude exit code: $claudeExitCode"
 
-# --------------------------------------------------
-# 5. Don't push if Claude failed
-# --------------------------------------------------
+# ==================================================
+# 5. Stop if Claude failed
+# ==================================================
 
 if ($claudeExitCode -ne 0) {
     Write-Log "Claude failed or could not run."
@@ -521,9 +686,11 @@ if ($claudeExitCode -ne 0) {
     exit $claudeExitCode
 }
 
-# --------------------------------------------------
-# 6. Check resulting changes
-# --------------------------------------------------
+Write-Log "Claude completed successfully."
+
+# ==================================================
+# 6. Check Git changes
+# ==================================================
 
 $status = git status --porcelain
 
@@ -536,9 +703,9 @@ if (-not $status) {
 Write-Log "Changes detected:"
 Write-Log $status
 
-# --------------------------------------------------
+# ==================================================
 # 7. Commit
-# --------------------------------------------------
+# ==================================================
 
 Write-Log "Adding changes..."
 
@@ -551,16 +718,16 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Log "Creating commit..."
 
-git commit -m "Implement overnight SDD pipeline changes"
+git commit -m "Upgrade agentic pipeline to SDD workflow"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Log "ERROR: git commit failed."
     exit 1
 }
 
-# --------------------------------------------------
+# ==================================================
 # 8. Push
-# --------------------------------------------------
+# ==================================================
 
 Write-Log "Pushing to origin/sdd-pipeline..."
 
