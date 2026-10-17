@@ -118,6 +118,7 @@ Never claim done while a required check failed.
 
 Any item not done is named in the final report with the reason.
 
-## 11. Optional per-developer skills
-`/caveman` gives terse output and `/ponytail` gives smallest-diff mode. Both run only when
-invoked explicitly. They never override the question, plan or report formats above.
+## 11. Style rules
+**Ponytail** (smallest complete change) is always on through `.cursor/rules/ponytail.mdc`.
+`/caveman` (terse output) runs only when invoked explicitly. Neither overrides the question,
+plan or report formats above.

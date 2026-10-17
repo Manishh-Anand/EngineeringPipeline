@@ -18,6 +18,7 @@ intent → requirements → audit → plan → **approval** → build → **inde
 
 ## Use
 - **Try it in Cursor:** [docs/TESTING_IN_CURSOR.md](docs/TESTING_IN_CURSOR.md)
-- **Install into a project:** `node scripts/install.mjs <repo> [--dry-run]`. It never overwrites
+- **Roll out to the team:** [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)
+- **Install / update a project:** `node scripts/install.mjs <repo> [--update] [--dry-run]`. It never overwrites
   existing files.
 - **Check after editing the pipeline:** `node scripts/check-pipeline.mjs && node --test scripts/pipeline.test.mjs`

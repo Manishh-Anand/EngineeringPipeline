@@ -5,8 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const INTERNAL_SKILLS = ['requirements-intake', 'codebase-audit', 'architecture-review', 'validation', 'code-review', 'documentation', 'project-memory'];
-export const RULES = ['engineering-core', 'security', 'csharp-dotnet', 'aspnet-core', 'ef-core', 'sql-server', 'react', 'typescript', 'javascript', 'vite', 'python', 'testing', 'documentation'];
-const ALWAYS_ON = new Set(['engineering-core', 'security']);
+export const RULES = ['engineering-core', 'security', 'csharp-dotnet', 'aspnet-core', 'ef-core', 'sql-server', 'react', 'typescript', 'javascript', 'vite', 'python', 'testing', 'documentation', 'ponytail'];
+const ALWAYS_ON = new Set(['engineering-core', 'security', 'ponytail']);
 const SKILL_SECTIONS = ['Purpose', 'Trigger', 'Inputs', 'Process', 'Output', 'Guardrails', 'Stop conditions'];
 const CAPS = { agents: 150, rule: 80, core: 60, internalSkill: 150, vendoredSkill: 350, memoryIndex: 100 };
 const REQUIRED_FILES = [
@@ -49,7 +49,7 @@ export function check(root) {
     if (!fm) { err(rel, 'missing frontmatter'); continue; }
     if (!fm.description) err(rel, 'missing description');
     const always = fm.alwaysApply === 'true';
-    if (always && !ALWAYS_ON.has(name)) err(rel, 'alwaysApply is reserved for engineering-core and security (progressive loading)');
+    if (always && !ALWAYS_ON.has(name)) err(rel, 'alwaysApply is reserved for engineering-core, security and ponytail (progressive loading)');
     if (!always && !fm.globs) err(rel, 'scoped rule needs globs');
     const cap = name === 'engineering-core' ? CAPS.core : CAPS.rule;
     if (lines(text).length > cap) err(rel, `${lines(text).length} lines > cap ${cap}`);

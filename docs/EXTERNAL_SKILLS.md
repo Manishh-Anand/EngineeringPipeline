@@ -26,7 +26,12 @@ Every new skill or update goes through a PR:
 | security-and-hardening | addyosmani/agent-skills @ aeac41d | MIT | model (by description) | OWASP/STRIDE threat-model workflow plus checklists. `security.mdc` defers to it | Repo-level `security-checklist.md` moved into `references/` |
 | debugging-and-error-recovery | addyosmani/agent-skills @ aeac41d | MIT | model (by description) | Reproduce → localize → reduce → fix → guard. This is the Debug-mode procedure | Removed "Safe Fallback Patterns" (silent defaults violate `engineering-core`); fixed a cross-skill reference |
 | caveman | JuliusBrussee/caveman @ 81958ad | MIT | **opt-in** `/caveman` | Terse output (fewer tokens). It keeps full sentences for questions and options, so the pipeline's formats survive | Removed the ultra/wenyan/status aliases (those skills weren't vendored) |
-| ponytail | DietrichGebert/ponytail @ 84740e3 (v5.2.0) | MIT | **opt-in** `/ponytail` | Smallest-complete-diff discipline. Matches "reuse before create" | None |
+
+## Vendored as a rule
+
+| Rule | Source @ commit | License | Invocation | Why | Local edits |
+|---|---|---|---|---|---|
+| ponytail | DietrichGebert/ponytail @ 84740e3 (v5.2.0) | MIT (`docs/licenses/ponytail-LICENSE`) | **always on** (`.cursor/rules/ponytail.mdc`) | Smallest complete diff, reuse first, never cut validation or security. Team decision (2026-10-17) | Converted from skill to an `alwaysApply` rule; removed the session toggle and the lite/ultra levels; "never cut" also covers the approved plan and the pipeline gates |
 
 ## Evaluated, not vendored
 
