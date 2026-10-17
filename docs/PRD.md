@@ -78,9 +78,9 @@ To add a stack, add one glob-scoped rule. The workflow doesn't change.
 | Claude Code compatibility | `CLAUDE.md` imports `@AGENTS.md` and says where rules and skills live | `CLAUDE.md` |
 | Always-on standards | 2 rules with `alwaysApply` (≤60 / ≤25 lines) | `.cursor/rules/engineering-core.mdc`, `security.mdc` |
 | Technology standards | 11 rules, auto-attached by `globs` | `.cursor/rules/*.mdc` |
-| Procedures | 6 internal skills (≤150 lines, fixed section layout) | `.cursor/skills/<name>/SKILL.md` |
+| Procedures | 7 internal skills (≤150 lines, fixed section layout) | `.cursor/skills/<name>/SKILL.md` |
 | Specialist knowledge | 7 vendored external skills (pinned, reviewed) | `.cursor/skills/`, `docs/EXTERNAL_SKILLS.md` |
-| Independent validation | Subagent with a fresh context | `.claude/agents/validator.md` (Cursor and Claude Code both read it) |
+| Review gate (2.1) | 3 fresh-context subagents in parallel: validator, code-reviewer, security-auditor | `.claude/agents/` (Cursor and Claude Code both read it) |
 | Working state between phases | Per-feature artifacts, gitignored | `.agent/work/<YYYYMMDD-slug>/` |
 | Artifact skeletons | Templates | `.agent/templates/` |
 | Team memory | Index plus one-fact files and ADRs, in Git | `.agent/memory/` |
@@ -112,10 +112,12 @@ When unsure, pick the higher class. Escalate as soon as a Low change turns out t
 
 | Skill | Output | Key rule |
 |---|---|---|
-| requirements-intake | `REQUIREMENTS.md` | 12 categories, each tagged EXPLICIT / INFERRED(source) / UNKNOWN. Only material UNKNOWNs become questions: at most 5 per round, 2 rounds |
-| codebase-audit | `CODEBASE_CONTEXT.md` (≤80 lines) | Stack from manifests, a trace of the closest existing feature, patterns, reuse candidates, the **real tooling commands** |
+| requirements-intake | `REQUIREMENTS.md` | The same **7-item intake** every time (Title, Screenshot, Features/Sub-features, Actors, Rules, Data elements, Architecture/folder structure), each pre-filled with tagged inferences and answered by numbered options (`.agent/templates/INTAKE.md`). Screenshots pasted in chat are transcribed into the requirements; `@file` screenshots are copied to `refs/`. At most 2 rounds |
+| codebase-audit | `CODEBASE_CONTEXT.md` (≤80 lines) | Detects GREENFIELD (no app code), or derives the stack from manifests, a trace of the closest existing feature, patterns, reuse candidates, the **real tooling commands** |
 | architecture-review | sections in `PLAN.md` | Reuse / Modify / Create / Avoid; layer and dependency direction; risk class; impact analysis for High |
-| validation (as the validator subagent) | `VALIDATION.md` | Real commands only; evidence before claims; NOT RUN with a reason; never edits source |
+| validation (validator subagent) | `VALIDATION.md` | Real commands only; acceptance-criteria→test mapping; scope check; evidence before claims; NOT RUN with a reason |
+| code-review (code-reviewer subagent) | `REVIEW.md` | Correctness, architecture fit, reuse, standards, test quality; read-only; PASS = no High/Med findings |
+| security audit (security-auditor subagent + `security-and-hardening`) | `SECURITY.md` | Trust boundaries, injection, authZ, secrets, dependency audit; read-only |
 | documentation | `docs/features/<slug>.md` | Only when behaviour, contracts, setup or architecture changed; update, don't duplicate |
 | project-memory | `.agent/memory/*` | Reads the index first; writes 0–3 one-fact entries after validation; reviewed through PRs |
 

@@ -1,15 +1,16 @@
 ---
 name: validation
-description: Independently validate a finished implementation against requirements, plan, architecture, coding rules, and the project's real typecheck/lint/test/build tooling; write VALIDATION.md with evidence. Use after every implementation (both lanes), ideally via the validator subagent so it runs in a fresh context.
+description: Independently prove a finished implementation works - run the project's real typecheck/lint/test/build commands, map every acceptance criterion to a passing test, and check the diff stays within the approved plan; write VALIDATION.md with evidence. Use after every implementation (both lanes) via the validator subagent, in parallel with code-reviewer and security-auditor.
 ---
 # Validation
 
 ## Purpose
-Prove that the change is correct with evidence. The implementer's opinion doesn't count.
+Prove that the change works with evidence. The implementer's opinion doesn't count. Code quality
+belongs to `code-review`, and security to `security-auditor`.
 
 ## Trigger
-After implementation, in both lanes. Prefer running it as the `validator` subagent
-(`.claude/agents/validator.md`), so the check gets a fresh context.
+After implementation, in both lanes. Run it as the `validator` subagent
+(`.claude/agents/validator.md`), so it gets a fresh context.
 
 ## Inputs
 - `REQUIREMENTS.md` and `PLAN.md` (the quick lane may have neither; use the request instead).
@@ -23,22 +24,21 @@ After implementation, in both lanes. Prefer running it as the `validator` subage
    |---|---|---|
    | Node/React/TS | `package.json` scripts | typecheck, lint, test, build |
    | .NET | `.sln`/`.csproj`, CI | `dotnet build` (warnings), `dotnet test` |
-   | SQL | migrations, `.sql` | migration script generation, impact present in plan |
+   | SQL | migrations, `.sql` | migration script generation; impact analysis present in plan |
    | Python | `pyproject`, CI | pytest; ruff/mypy only if configured |
 
-   If a check isn't configured, record `NOT RUN: not configured`. Don't add tooling.
+   If a check isn't configured, record `NOT RUN: not configured`. In greenfield work, the
+   scaffold step must have configured them.
 2. **Run** each command and keep the exit code plus the relevant output lines as evidence.
-3. **Review the diff**:
-   - **Requirements**: every acceptance criterion is met and has a test.
-   - **Plan**: there is no unplanned file or behaviour. Any scope creep is a finding.
-   - **Architecture**: re-check layer, dependency direction and reuse (see `architecture-review`).
-   - **Standards**: the matching `.cursor/rules` for each changed file.
-   - **Security**: secrets, input validation, parameterised SQL, authorization on new endpoints.
+3. **Check the diff**:
+   - **Requirements**: every acceptance criterion maps to a test that ran and passed.
+   - **Plan / scope**: no file or behaviour outside the approved plan. Any scope creep is a finding.
    - **Tests**: none deleted, skipped or weakened; no checks disabled to get green.
    - **Docs**: updated if behaviour or contracts changed.
-4. Write `.agent/work/<id>/VALIDATION.md` from the template. Each section is PASS / FAIL /
-   NOT RUN (reason). Every FAIL lists severity (High/Med/Low), file, location, problem, impact
-   and recommended fix.
+   - **UI (optional)**: if Playwright MCP is available and a reference was transcribed, open the
+     page and compare it against the `Reference` section of `REQUIREMENTS.md`.
+4. Write `.agent/work/<id>/VALIDATION.md` from the template. Each row is PASS / FAIL /
+   NOT RUN (reason).
 5. Result:
    - **PASS** only if every required check passed.
    - Otherwise show the `Validation failed. N issues found.` menu from AGENTS.md §8.

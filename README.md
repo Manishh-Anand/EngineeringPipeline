@@ -9,8 +9,8 @@ intent → requirements → audit → plan → **approval** → build → **inde
 |---|---|
 | `AGENTS.md` | Router: intent → Cursor mode → skills, risk lanes, gates |
 | `.cursor/rules/` | Coding standards (2 always on, 11 attached by file type) |
-| `.cursor/skills/` | 6 pipeline skills + 7 vetted external skills ([register](docs/EXTERNAL_SKILLS.md)) |
-| `.claude/agents/validator.md` | Fresh-context validation subagent |
+| `.cursor/skills/` | 7 pipeline skills + 7 vetted external skills ([register](docs/EXTERNAL_SKILLS.md)) |
+| `.claude/agents/` | Review gate subagents: `validator`, `code-reviewer`, `security-auditor` (run in parallel) |
 | `.agent/memory/` | Team memory (decisions, conventions, gotchas), reviewed in PRs |
 | `.agent/templates/` | Skeletons for the REQUIREMENTS / CODEBASE_CONTEXT / PLAN / VALIDATION artifacts |
 | `samples/` | React + ASP.NET Core sample apps for testing the pipeline |

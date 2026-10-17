@@ -4,14 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const INTERNAL_SKILLS = ['requirements-intake', 'codebase-audit', 'architecture-review', 'validation', 'documentation', 'project-memory'];
+export const INTERNAL_SKILLS = ['requirements-intake', 'codebase-audit', 'architecture-review', 'validation', 'code-review', 'documentation', 'project-memory'];
 export const RULES = ['engineering-core', 'security', 'csharp-dotnet', 'aspnet-core', 'ef-core', 'sql-server', 'react', 'typescript', 'javascript', 'vite', 'python', 'testing', 'documentation'];
 const ALWAYS_ON = new Set(['engineering-core', 'security']);
 const SKILL_SECTIONS = ['Purpose', 'Trigger', 'Inputs', 'Process', 'Output', 'Guardrails', 'Stop conditions'];
 const CAPS = { agents: 150, rule: 80, core: 60, internalSkill: 150, vendoredSkill: 350, memoryIndex: 100 };
 const REQUIRED_FILES = [
-  'AGENTS.md', 'CLAUDE.md', '.claude/agents/validator.md', '.agent/memory/INDEX.md', 'docs/EXTERNAL_SKILLS.md',
-  ...['REQUIREMENTS', 'CODEBASE_CONTEXT', 'PLAN', 'VALIDATION', 'FEATURE_DOC', 'ADR'].map((t) => `.agent/templates/${t}.md`),
+  'AGENTS.md', 'CLAUDE.md', ...['validator', 'code-reviewer', 'security-auditor'].map((a) => `.claude/agents/${a}.md`), '.agent/memory/INDEX.md', 'docs/EXTERNAL_SKILLS.md',
+  ...['INTAKE', 'REQUIREMENTS', 'CODEBASE_CONTEXT', 'PLAN', 'VALIDATION', 'REVIEW', 'FEATURE_DOC', 'ADR'].map((t) => `.agent/templates/${t}.md`),
 ];
 
 const lines = (s) => s.replace(/\r\n/g, '\n').split('\n');

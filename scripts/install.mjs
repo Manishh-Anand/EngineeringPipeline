@@ -10,7 +10,7 @@ const SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Pipeline-owned paths. .agent/memory is a scaffold: copied only where the target has none of its own files.
 const PATHS = [
   'AGENTS.md', 'CLAUDE.md', '.cursor/rules', '.cursor/skills', '.cursor/mcp.json', '.mcp.json',
-  '.claude/agents/validator.md', '.agent/templates', '.agent/memory', '.agent/work/.gitkeep',
+  '.claude/agents', '.agent/templates', '.agent/memory', '.agent/work/.gitkeep',
   'docs/EXTERNAL_SKILLS.md', 'scripts/check-pipeline.mjs',
 ];
 const GITIGNORE = ['.agent/work/*', '!.agent/work/.gitkeep'];

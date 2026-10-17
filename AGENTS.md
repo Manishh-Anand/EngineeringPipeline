@@ -17,7 +17,7 @@ and *which* skill to use. The rules in `.cursor/rules/` hold the standards, and 
 | Intent | Cursor mode | Workflow |
 |---|---|---|
 | Investigation ("how does X work") | **Ask** | `codebase-audit` (read-only) → explanation. No edits. |
-| Bug | **Debug** | reproduce → root cause → (Medium/High: plan + approval) → fix → `validation` |
+| Bug | **Debug** | reproduce → root cause → (Medium/High: plan + approval) → fix + regression test → review gate (§4) |
 | Feature / significant change | **Plan** → **Agent** | full lane (§4) |
 | Low-risk change | **Agent** | quick lane (§4) |
 | Several independent tasks | **Plan** → **Multitask** | full lane, then split the approved plan into independent units |
@@ -37,13 +37,25 @@ If you are unsure, pick the higher class.
 ## 4. Lanes
 **Full lane** (Medium/High):
 `requirements-intake` → `codebase-audit` → `architecture-review` → plan → **approval** → implement →
-`validation` (as the `validator` subagent) → `documentation` → `project-memory` → final report.
+**review gate** → `documentation` → `project-memory` → final report.
 
-**Quick lane** (Low): `codebase-audit` (scoped to the touched files) → implement → `validation` → final report.
+**Quick lane** (Low): `codebase-audit` (scoped to the touched files) → implement → **review gate** → final report.
 Escalate to the full lane as soon as the change turns out not to be Low.
 
+**Review gate**: launch three subagents **in parallel**, each in a fresh context, each given the
+feature id and the diff base:
+- `validator` (`validation` skill), which writes `VALIDATION.md`;
+- `code-reviewer` (`code-review` skill), whose report you save as `REVIEW.md`;
+- `security-auditor` (`security-and-hardening` skill), whose report you save as `SECURITY.md`.
+
+If any of them fails, show the "Validation failed" menu (§8), fix the issues, then re-run only
+the failed reviewers. Continue only when all three pass.
+
 Working artifacts go in `.agent/work/<YYYYMMDD-slug>/`, using the skeletons in `.agent/templates/`.
-They hold summaries, never source dumps.
+They hold summaries, never source dumps. In Cursor **Plan mode**, if you can't write files, put
+REQUIREMENTS and CODEBASE_CONTEXT as the first sections of the plan. The **first build step** then
+saves them, together with `PLAN.md` and any referenced screenshots (`refs/`), into the feature
+folder.
 
 ## 5. Plan content
 The plan uses `.agent/templates/PLAN.md`. Its sections are: Feature, Objective, Approach, Create,
@@ -63,10 +75,19 @@ Do not implement Medium/High work until the developer explicitly approves the pl
   ```
 
 ## 7. Questions
-Infer first. Use the prompt, screenshots, the repo, config, tests and memory before asking
-anything. Ask only when the answer would change functionality, architecture, data, UX, security,
-the API or acceptance criteria. Questions are numbered with options, so the developer can reply
-`1. 2  2. 4 — use the existing API`. See `requirements-intake`.
+Every feature intake asks the same **7 items**, each pre-filled with what you inferred:
+1. Title
+2. Screenshot / reference
+3. Features / sub-features
+4. Actors
+5. Rules
+6. Data elements
+7. Architecture / folder structure
+
+The format is `.agent/templates/INTAKE.md`. Infer first, from the prompt, attached images, the
+repo, config, tests and memory. All answers are numbered options, so the developer can reply
+`1. ok  2. 1  4. 1,2 …`. Outside intake, ask only when the answer would change functionality,
+architecture, data, UX, security, the API or acceptance criteria. See `requirements-intake`.
 
 ## 8. Stop menus
 Use these exact shapes:
@@ -77,7 +98,8 @@ Use these exact shapes:
 ## 9. Final report
 Report:
 - what changed, with file list;
-- the validation result per check;
+- the result of each check, plus the review and security results (with any findings accepted as
+  Low);
 - every check that could **not** run, and why;
 - docs and memory updated;
 - open risks.
@@ -91,9 +113,8 @@ Never claim done while a required check failed.
 - Implemented within scope.
 - Tests added or updated.
 - Typecheck, lint, build and tests pass where the project configures them.
-- Security checked.
+- `VALIDATION.md`, `REVIEW.md` and `SECURITY.md` all PASS.
 - Docs updated.
-- `VALIDATION.md` written.
 
 Any item not done is named in the final report with the reason.
 

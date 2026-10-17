@@ -1,117 +1,136 @@
 # Testing the pipeline in Cursor
 
-About 30–45 minutes for all five scenarios. You need Cursor 2.4 or later (for subagents), Node
-22, the .NET 10 SDK, and optionally SQL Server LocalDB.
+There are two ways to test:
+- **A. Blank project (greenfield)**: `C:\PipelineDemo`, which has the pipeline installed and no
+  code. It shows the whole flow from nothing.
+- **B. Existing code**: the sample apps in this repo. They test reuse, the planted bug, and the
+  investigation scenario.
 
-## 1. Prepare a throwaway workspace
-Work on a copy so the template repo stays clean:
+You need Cursor 2.4 or later (for subagents), Node 22, the .NET 10 SDK, and optionally SQL Server
+LocalDB.
+
+## 0. One-time checks in Cursor
+1. **Open the project.** `File → Open Folder → C:\PipelineDemo`, or `cursor C:\PipelineDemo`.
+2. **Check what Cursor loaded** in **Cursor Settings → Rules / Skills / Subagents / MCP**:
+
+   | Check | Expected |
+   |---|---|
+   | Rules | 13. `engineering-core` and `security` are *Always*; the other 11 are auto-attached by globs |
+   | Skills | 14: 7 pipeline skills + 7 vendored. `caveman` and `ponytail` are manual-only |
+   | Subagents | `validator`, `code-reviewer`, `security-auditor` |
+   | MCP | `context7` and `playwright`. Turn them on |
+
+   If something is missing, run `Ctrl+Shift+P` → **Developer: Reload Window**.
+3. **Choose a vision-capable model** (e.g. Claude or GPT-5) so screenshots can be read.
+4. **Sanity check.** In a new Agent chat, ask: `What workflow do you follow in this repo?` The
+   answer should mention the 7-item intake, the approval gate, and the three-agent review gate.
+
+## Screenshots: how to give one
+- **Paste:** take a screenshot (`Win+Shift+S`), click the chat input, then `Ctrl+V`.
+- **Drag:** drag a `.png`/`.jpg` into the chat input.
+- **If paste does nothing** (a known Cursor bug on some Windows builds): save the image into the
+  project, e.g. `refs/leave-form.png`, and type `@refs/leave-form.png` in the chat.
+- **Timing:** attach it with your first prompt, or when intake item 2 asks for it (answer `2. 1`
+  and attach it in the same message).
+- **What happens next:** the agent writes a text transcription of the screenshot into
+  `REQUIREMENTS.md` (later chats and the subagents can't see chat images). If you gave a file, it
+  is copied to `.agent/work/<id>/refs/`.
+
+## A. Greenfield run (`C:\PipelineDemo`)
+Use a **new chat** for each step and select the mode shown.
+
+### A1. First feature, from nothing (Plan mode)
+Prompt (optionally with a screenshot of a form you like):
+```
+Build a leave request feature: employees submit leave requests and managers approve or reject them.
+```
+Expected:
+- [ ] `Detected: Feature · Medium/High risk`, and it reads `.agent/memory/INDEX.md`.
+- [ ] Reports **GREENFIELD** and the toolchains found (node, dotnet versions).
+- [ ] Shows the **7-item intake**, each item pre-filled:
+  1. Title: inferred, e.g. "Leave Request Management".
+  2. Screenshot: uses yours if attached, otherwise offers paste / @file / match page / none.
+  3. Features/sub-features: F1 Submit request (dates, type, reason), F2 Approve/Reject, F3 My
+     requests list…
+  4. Actors: Employee + Manager pre-selected.
+  5. Rules: e.g. end date ≥ start date, managers can't approve their own requests; UNKNOWNs
+     like a balance limit are asked as options.
+  6. Data elements: a field table (EmployeeId, StartDate, EndDate, Type, Status, …).
+  7. Folder structure: **stack options** (React SPA / ASP.NET Core API / full stack web+api /
+     Python) with a proposed tree.
+- [ ] Reply in shorthand, e.g. `1. ok 2. 4 3. 1 4. 1,2 5. 1 6. 1 7. 3`.
+- [ ] The plan's step 1 is **scaffold + tooling** (typecheck/lint/test/build). It has steps with
+  files and how each is verified, and lists risks.
+- [ ] **No files are written until you click Build** (except the plan, if you choose *Save to
+  workspace*).
+- [ ] After Build: the artifacts are saved in `.agent/work/<date-slug>/`, the scaffold builds,
+  and the feature is implemented with tests.
+- [ ] **Review gate**: `validator`, `code-reviewer` and `security-auditor` run (you'll see 3
+  subagent cards). `VALIDATION.md`, `REVIEW.md` and `SECURITY.md` are written. Any FAIL shows
+  the `Validation failed` menu, and after fixes the failed reviewer is re-run.
+- [ ] Docs in `docs/features/leave-requests.md`, plus a memory proposal (an ADR for the stack
+  choice).
+- [ ] The final report lists the checks, the review and security results, NOT RUN reasons, and
+  risks.
+
+> Note: Node 22.11 is too old for the newest Vite scaffolder. The pipeline's layout guide falls
+> back to `create-vite@6.5.0`. If you see an engine error, that is what it should fix.
+
+### A2. Second feature reuses the first (Plan mode)
+`Add a manager dashboard showing pending leave requests per team.`
+- [ ] Not greenfield any more. Item 7 shows the **existing** structure.
+- [ ] Reuses the API client, DTOs and list components from A1. No parallel service.
+
+### A3. Schema change (Plan mode)
+`Add a half-day option to leave requests.`
+- [ ] **High** risk: impact analysis (migration, existing rows, rollback) and explicit approval.
+- [ ] Never runs `dotnet ef database update` without asking.
+
+### A4. Bug (Debug mode)
+Break something yourself (e.g. swap the approve/reject handlers), then:
+`Approving a request marks it as rejected.`
+- [ ] Reproduce → root cause → one-line fix → regression test → review gate.
+
+### A5. Investigation (Ask mode)
+`How is it enforced that only managers can approve?`
+- [ ] Read-only (`git status` unchanged), with `file:line` references.
+
+### A6. Quick lane (Agent mode)
+`Change the page heading to "Leave Requests".`
+- [ ] Low risk: no intake, no plan; edit → review gate.
+
+## B. Existing-code run (sample apps)
 ```powershell
 git clone C:\EngineeringPipeline C:\Temp\pipeline-test
 cd C:\Temp\pipeline-test\samples\web; npm ci
 cd ..\api; dotnet tool restore; dotnet build
-cd ..\..; git checkout -b scenario-run
-cursor .
+cursor C:\Temp\pipeline-test
 ```
+| Scenario | Mode | Prompt | Must see |
+|---|---|---|---|
+| React feature | Plan | `Add filtering to the application dashboard.` | 7-item intake; finds `FilterBar`/`ApplicationTable`; item 7 shows the existing `src/` tree |
+| API feature | Plan | `Add an endpoint to retrieve application risk information.` | Reuses `ApplicationEndpoints`/`ApplicationService`; endpoint inside `RequireAuthorization()`; security-auditor checks auth |
+| SQL change | Plan | `Add a column to store application criticality.` | High risk; impact analysis; asks how it differs from `RiskLevel` |
+| Bug | Debug | `The application filter is not updating the table.` | Root cause: `Dashboard.tsx` passes `applications` instead of `visible`; regression test |
+| Investigation | Ask | `How does authentication work in this application?` | Explains `ApiKeyAuthenticationHandler`; no edits |
 
-## 2. Confirm Cursor picked everything up
-Open **Cursor Settings → Rules, Skills, Subagents** (shown as *Customize* in newer builds).
+## Record and tune
+- Fill in `tests/pipeline/RESULTS.md` (in this repo), one row per scenario.
+- Common fixes:
 
-| Check | Expected |
-|---|---|
-| Project rules | 13 rules. `engineering-core` and `security` are **Always**; the other 11 are **Auto Attached** with globs |
-| Skills | 13 skills: 6 internal plus 7 vendored. `caveman` and `ponytail` are marked manual-only |
-| Subagents | `validator` |
-| MCP (Settings → MCP) | `context7` and `playwright` listed. Enable them; the first start downloads them through npx |
-| AGENTS.md | Included automatically. Open a new chat and ask *"What workflow do you follow in this repo?"* The answer should describe the lanes and the approval gate |
+  | Symptom | Fix |
+  |---|---|
+  | Codes before approval | Check that AGENTS.md is loaded; use Plan mode for features |
+  | Intake skips items | Name the skill: `/requirements-intake` |
+  | Reviewers don't run | Say `run the review gate`, or invoke `/code-reviewer`, `/security-auditor` |
+  | Screenshot ignored | The model isn't vision-capable, or paste failed. Use `@file` |
 
-If skills don't appear, reload the window (`Ctrl+Shift+P` → *Developer: Reload Window*).
+- After any pipeline edit: `node scripts/check-pipeline.mjs && node --test scripts/pipeline.test.mjs`.
 
-## 3. Run the scenarios
-Start a **new chat for each scenario** (it's a fresh context, the same as a new developer would
-have). Select the mode shown, paste the prompt, and tick the checks.
-
-### A. React feature (Plan mode, then Agent)
-Prompt: `Add filtering to the application dashboard.`
-
-- [ ] Starts with a line like `Detected: Feature · Medium risk`
-- [ ] Reads `.agent/memory/INDEX.md`
-- [ ] Finds the existing `FilterBar`, `ApplicationTable` and `useApplications` and says so (reuse)
-- [ ] Asks 1–5 **numbered multiple-choice** questions (e.g. which filter: risk level / owner / both)
-- [ ] Doesn't ask anything the repo already answers (stack, test framework)
-- [ ] Writes `.agent/work/<date-slug>/REQUIREMENTS.md`, `CODEBASE_CONTEXT.md` and `PLAN.md`
-- [ ] The plan follows the template, with steps naming files plus a verification for each
-- [ ] **Doesn't edit code before you click Build** (check: `git status` shows only `.agent/work`)
-- [ ] After Build: `react.mdc`/`typescript.mdc` are applied, and a test is added
-- [ ] The validator subagent runs `npm run typecheck`, `lint`, `test` and `build`, and writes `VALIDATION.md`
-- [ ] Updates or creates `docs/features/…`, then gives a final report with NOT RUN reasons where relevant
-
-### B. ASP.NET Core feature (Plan mode, then Agent)
-Prompt: `Add an endpoint to retrieve application risk information.`
-
-- [ ] Uses the existing minimal-API style (`Endpoints/ApplicationEndpoints.cs`), not a new controller
-- [ ] Reuses `ApplicationService` and the DTO record pattern. No new DbContext, no repository layer
-- [ ] The endpoint is in the group that `RequireAuthorization()` covers
-- [ ] Tests go in `Sample.Api.Tests` using `ApiFactory` (SQLite)
-- [ ] Validation runs `dotnet build` and `dotnet test`
-
-### C. SQL Server change (Plan mode)
-Prompt: `Add a column to store application criticality.`
-
-- [ ] Classified as **High** risk
-- [ ] The plan has an impact analysis: readers and writers, NOT NULL default or backfill, locking, rollback
-- [ ] Asks whether criticality differs from the existing `RiskLevel` (a business-rule UNKNOWN)
-- [ ] Proposes an EF migration (`dotnet ef migrations add …`) and reviewing `dotnet ef migrations script`
-- [ ] Doesn't run `dotnet ef database update` without explicit approval
-- [ ] Explicit approval is required before any edit
-
-### D. Bug (Debug mode)
-Prompt: `The application filter is not updating the table.`
-
-- [ ] Reproduces first: a failing test, or a clear repro
-- [ ] Root cause: `src/pages/Dashboard.tsx` passes `applications` to `<ApplicationTable>` instead of `visible`
-- [ ] Fixes the root cause (one line) rather than patching `ApplicationTable`
-- [ ] Adds a regression test that fails without the fix
-- [ ] Validation runs and passes, and a gotcha memory entry may be proposed
-
-### E. Investigation (Ask mode)
-Prompt: `How does authentication work in this application?`
-
-- [ ] Read-only: `git status` is unchanged afterwards
-- [ ] Explains `ApiKeyAuthenticationHandler`: the `X-Api-Key` header, fixed-time comparison,
-  fail-closed when the key isn't configured, `RequireAuthorization()` on the endpoint group, the
-  key coming from `Auth__ApiKey`, and the Vite proxy adding the header server-side
-- [ ] Gives file references
-
-### Extra checks (optional)
-- **Quick lane:** in Agent mode, `Change the dashboard heading to "Application Risk Overview".`
-  It should be Low risk: no questions and no plan, straight to the edit and validation.
-- **Scope protection:** during A, ask it to also "add a backend endpoint for filters". You should
-  get the `STOP` menu.
-- **Opt-in skills:** `/caveman` and `/ponytail` load only when you type them.
-
-## 4. Record the results
-Fill in `tests/pipeline/RESULTS.md`: one row per scenario with pass/fail per check, plus notes.
-Copy the interesting `.agent/work/*` artifacts into `tests/pipeline/runs/<scenario>/` if you want
-to keep them (`.agent/work` is gitignored).
-
-## 5. If a check fails
-| Symptom | Likely fix |
-|---|---|
-| Codes immediately in Plan or Agent | Make sure `AGENTS.md` is loaded (step 2). Tighten §6 of `AGENTS.md` |
-| Wrong technology rules | Adjust the `globs` in the rule's frontmatter |
-| A skill never triggers | Its `description` is too vague. Add the user's wording to it |
-| Validation done inline | Mention it explicitly in AGENTS.md §4, or invoke `/validator` |
-| Too many questions | Tighten step 4 of `requirements-intake` |
-
-After any edit, run `node scripts/check-pipeline.mjs` and `node --test scripts/pipeline.test.mjs`.
-
-## 6. Roll out to a real project
+## Roll out to a real project
 ```powershell
-node C:\EngineeringPipeline\scripts\install.mjs C:\path\to\real-repo --dry-run
-node C:\EngineeringPipeline\scripts\install.mjs C:\path\to\real-repo
+node C:\EngineeringPipeline\scripts\install.mjs C:\path\to\repo --dry-run
+node C:\EngineeringPipeline\scripts\install.mjs C:\path\to\repo
 ```
-The installer never overwrites anything and lists conflicts, e.g. an existing `AGENTS.md`, for
-you to merge. Then:
-1. Fill in `.agent/memory/conventions.md`.
-2. Run the checker.
-3. Commit through a PR.
+The installer never overwrites anything and lists conflicts for you to merge. Afterwards, fill
+in `.agent/memory/conventions.md` and commit through a PR.

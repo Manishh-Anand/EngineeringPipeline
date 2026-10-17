@@ -1,6 +1,6 @@
 ---
 name: architecture-review
-description: Decide whether a proposed solution fits the existing system - classify every element as Reuse / Modify / Create / Avoid, check layer placement and dependency direction, assign the risk class, and produce impact analysis for High-risk changes. Use after codebase-audit and before writing the implementation plan; validation re-runs its checks on the result.
+description: Decide whether a proposed solution fits the existing system - classify every element as Reuse / Modify / Create / Avoid, check layer placement and dependency direction, assign the risk class, and produce impact analysis for High-risk changes. Use after codebase-audit and before writing the implementation plan; code-review re-checks the result.
 ---
 # Architecture review
 
@@ -8,13 +8,16 @@ description: Decide whether a proposed solution fits the existing system - class
 Make sure the plan extends the existing architecture instead of growing a parallel one.
 
 ## Trigger
-Full lane, between `codebase-audit` and the plan. `validation` re-checks the finished code
+Full lane, between `codebase-audit` and the plan. `code-review` re-checks the finished code
 against this review.
 
 ## Inputs
 `REQUIREMENTS.md`, `CODEBASE_CONTEXT.md`, and `.agent/memory/decisions/`.
 
 ## Process
+0. **Greenfield** (the audit reported `GREENFIELD`): take the stack and layout chosen in intake
+   item 7 from `references/default-layouts.md`. Everything is **Create**. The plan's first step
+   is the scaffold plus its tooling.
 1. Draft the solution shape: the components, endpoints, services and data changes it needs.
 2. Classify each element:
    - **Reuse**: an existing thing used as-is (name it, with its path).

@@ -16,6 +16,10 @@ Ground every plan and explanation in what the repository actually contains.
 `REQUIREMENTS.md` (if any), the repository, and `.agent/memory/` (conventions and gotchas).
 
 ## Process
+0. **Greenfield check**: if the repo has no application code (only pipeline files and dotfiles: `.cursor/`,
+   `.claude/`, `.agent/`, `docs/`, `scripts/`, `AGENTS.md`, `CLAUDE.md`, `README.md`), report `GREENFIELD`. Record the
+   installed toolchains (`node --version`, `dotnet --version`, `python --version`) and skip
+   steps 2–5. `architecture-review` then proposes a layout.
 1. **Stack**: detect it from the manifests, not from the prompt.
    - `package.json` (React, Vite and test runner versions, scripts)
    - `*.sln`/`*.csproj` (TargetFramework, packages: EF Core provider, test framework)
