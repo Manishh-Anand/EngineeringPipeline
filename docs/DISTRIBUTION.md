@@ -23,7 +23,7 @@ repo when they open it.
 
 ## 2. Roll out to a project (per repo)
 ```powershell
-git clone --depth 1 --branch v2.2.0 https://<host>/<org>/engineering-pipeline C:\tools\engineering-pipeline
+git clone --depth 1 --branch installation https://github.com/Manishh-Anand/EngineeringPipeline.git C:\tools\engineering-pipeline
 cd C:\path\to\project; git checkout -b chore/engineering-pipeline
 node C:\tools\engineering-pipeline\scripts\install.mjs . --dry-run   # preview
 node C:\tools\engineering-pipeline\scripts\install.mjs .
@@ -42,7 +42,7 @@ Roll out to one pilot repo and 2–3 developers for a week first, then to the re
    bump `VERSION`, and tag the release.
 2. **Update each project:**
    ```powershell
-   git -C C:\tools\engineering-pipeline fetch --tags; git -C C:\tools\engineering-pipeline checkout v2.3.0
+   git -C C:\tools\engineering-pipeline pull
    node C:\tools\engineering-pipeline\scripts\install.mjs C:\path\to\project --update
    ```
    - Files **unchanged since the last install** are replaced. Files the pipeline dropped are
@@ -94,7 +94,7 @@ Azure Pipelines:
 - script: node scripts/check-pipeline.mjs
   displayName: Pipeline check
 ```
-In the template repo itself, also run `node --test scripts/pipeline.test.mjs`.
+On `master` (the development branch), also run `node --test scripts/pipeline.test.mjs`.
 
 ## 6. Later: an org-wide layer
 Once the rules and skills stop changing every week, package the project-agnostic parts (rules,

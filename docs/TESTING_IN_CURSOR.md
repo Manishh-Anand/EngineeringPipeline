@@ -1,10 +1,13 @@
 # Testing the pipeline in Cursor
 
-There are two ways to test:
-- **A. Blank project (greenfield)**: `C:\PipelineDemo`, which has the pipeline installed and no
-  code. It shows the whole flow from nothing.
-- **B. Existing code**: the sample apps in this repo. They test reuse, the planted bug, and the
-  investigation scenario.
+Test on a blank demo project first. It shows the whole flow, from an empty folder to a
+validated feature. Create it from this branch:
+```powershell
+git clone -b installation https://github.com/Manishh-Anand/EngineeringPipeline.git C:\tools\engineering-pipeline
+mkdir C:\PipelineDemo; cd C:\PipelineDemo; git init
+node C:\tools\engineering-pipeline\scripts\install.mjs .
+git add -A; git commit -m "Install Engineering Agent Pipeline"
+```
 
 You need Cursor 2.4 or later (for subagents), Node 22, the .NET 10 SDK, and optionally SQL Server
 LocalDB.
@@ -99,23 +102,9 @@ Break something yourself (e.g. swap the approve/reject handlers), then:
 `Change the page heading to "Leave Requests".`
 - [ ] Low risk: no intake, no plan; edit → review gate.
 
-## B. Existing-code run (sample apps)
-```powershell
-git clone C:\EngineeringPipeline C:\Temp\pipeline-test
-cd C:\Temp\pipeline-test\samples\web; npm ci
-cd ..\api; dotnet tool restore; dotnet build
-cursor C:\Temp\pipeline-test
-```
-| Scenario | Mode | Prompt | Must see |
-|---|---|---|---|
-| React feature | Plan | `Add filtering to the application dashboard.` | 7-item intake; finds `FilterBar`/`ApplicationTable`; item 7 shows the existing `src/` tree |
-| API feature | Plan | `Add an endpoint to retrieve application risk information.` | Reuses `ApplicationEndpoints`/`ApplicationService`; endpoint inside `RequireAuthorization()`; security-auditor checks auth |
-| SQL change | Plan | `Add a column to store application criticality.` | High risk; impact analysis; asks how it differs from `RiskLevel` |
-| Bug | Debug | `The application filter is not updating the table.` | Root cause: `Dashboard.tsx` passes `applications` instead of `visible`; regression test |
-| Investigation | Ask | `How does authentication work in this application?` | Explains `ApiKeyAuthenticationHandler`; no edits |
-
 ## Record and tune
-- Fill in `tests/pipeline/RESULTS.md` (in this repo), one row per scenario.
+- Report problems as issues on the pipeline repo, with the chat transcript or the
+  `.agent/work/<id>/` files attached.
 - Common fixes:
 
   | Symptom | Fix |
@@ -125,12 +114,12 @@ cursor C:\Temp\pipeline-test
   | Reviewers don't run | Say `run the review gate`, or invoke `/code-reviewer`, `/security-auditor` |
   | Screenshot ignored | The model isn't vision-capable, or paste failed. Use `@file` |
 
-- After any pipeline edit: `node scripts/check-pipeline.mjs && node --test scripts/pipeline.test.mjs`.
+- After editing any pipeline file in a project: `node scripts/check-pipeline.mjs`.
 
 ## Roll out to a real project
 ```powershell
-node C:\EngineeringPipeline\scripts\install.mjs C:\path\to\repo --dry-run
-node C:\EngineeringPipeline\scripts\install.mjs C:\path\to\repo
+node C:\tools\engineering-pipeline\scripts\install.mjs C:\path\to\repo --dry-run
+node C:\tools\engineering-pipeline\scripts\install.mjs C:\path\to\repo
 ```
 The installer never overwrites anything and lists conflicts for you to merge. Afterwards, fill
 in `.agent/memory/conventions.md` and commit through a PR.
