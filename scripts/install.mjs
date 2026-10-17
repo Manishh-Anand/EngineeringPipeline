@@ -61,7 +61,14 @@ export function install(target, { dryRun = false, update = false } = {}) {
       if (owned.includes(rel)) continue;
       const to = path.join(target, rel);
       if (!fs.existsSync(to)) continue;
-      if (hash(to) === h) { if (!dryRun) fs.rmSync(to); result.removed.push(rel); }
+      if (hash(to) === h) {
+        if (!dryRun) {
+          fs.rmSync(to);
+          // An empty skill folder left behind would fail check-pipeline, so prune empty parents.
+          for (let d = path.dirname(to); d !== target && fs.readdirSync(d).length === 0; d = path.dirname(d)) fs.rmdirSync(d);
+        }
+        result.removed.push(rel);
+      }
       else result.conflicts.push(`${rel} (removed upstream, edited locally)`);
     }
   }

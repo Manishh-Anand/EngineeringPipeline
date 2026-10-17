@@ -102,6 +102,7 @@ test('--update replaces untouched files, keeps local edits, removes dropped file
   assert.ok(r.conflicts.includes('.cursor/rules/vite.mdc'));
   assert.equal(fs.readFileSync(path.join(t, '.cursor/rules/vite.mdc'), 'utf8'), 'team edited this\n');
   assert.deepEqual(r.removed, ['.cursor/skills/old-skill/SKILL.md']);
+  assert.ok(!fs.existsSync(path.join(t, '.cursor/skills/old-skill')), 'empty skill folder pruned');
   assert.ok(r.conflicts.some((c) => c.startsWith('.cursor/skills/gone/SKILL.md')));
   assert.equal(fs.readFileSync(path.join(t, '.agent/memory/conventions.md'), 'utf8'), '# Conventions\n- ours\n');
   assert.ok(!r.conflicts.includes('.agent/memory/conventions.md'));
