@@ -1,0 +1,23 @@
+# Engineering Agent Pipeline
+
+A Git-distributed workflow that makes AI coding agents in Cursor (and Claude Code) behave like a
+standardised engineer:
+
+intent → requirements → audit → plan → **approval** → build → **independent validation** → docs → memory.
+
+| Path | What it is |
+|---|---|
+| `AGENTS.md` | Router: intent → Cursor mode → skills, risk lanes, gates |
+| `.cursor/rules/` | Coding standards (2 always on, 11 attached by file type) |
+| `.cursor/skills/` | 6 pipeline skills + 7 vetted external skills ([register](docs/EXTERNAL_SKILLS.md)) |
+| `.claude/agents/validator.md` | Fresh-context validation subagent |
+| `.agent/memory/` | Team memory (decisions, conventions, gotchas), reviewed in PRs |
+| `.agent/templates/` | Skeletons for the REQUIREMENTS / CODEBASE_CONTEXT / PLAN / VALIDATION artifacts |
+| `samples/` | React + ASP.NET Core sample apps for testing the pipeline |
+| `docs/PRD.md` | Product requirements (v2.1) |
+
+## Use
+- **Try it in Cursor:** [docs/TESTING_IN_CURSOR.md](docs/TESTING_IN_CURSOR.md)
+- **Install into a project:** `node scripts/install.mjs <repo> [--dry-run]`. It never overwrites
+  existing files.
+- **Check after editing the pipeline:** `node scripts/check-pipeline.mjs && node --test scripts/pipeline.test.mjs`
